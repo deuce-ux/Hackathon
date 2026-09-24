@@ -51,6 +51,7 @@ function HostGame(){
  const voteTotal=liveVotes.reduce((a,b)=>a+b,0),crowdChoice=liveVotes.indexOf(Math.max(...liveVotes))
  const poll=useMemo(()=>{const total=liveVotes.reduce((a,b)=>a+b,0);return total?liveVotes.map(v=>Math.round(v/total*100)):q?[8,12,16,10].map((v,i)=>i===q.correct?54:v):[]},[liveVotes,q])
  useEffect(()=>{void QRCode.toDataURL(audienceUrl,{width:360,margin:2,color:{dark:'#050817',light:'#ffffff'}}).then(setQrSrc)},[audienceUrl])
+ useEffect(()=>{quizSound.prepare()},[])
  const socket=useLiveSocket({onMessage:m=>{if(m.type==='state'){setLiveVotes(m.votes??[0,0,0,0]);setConnected(Math.max(0,m.connected??0))}},onConnected:()=>{},onOpen:ws=>ws.send(JSON.stringify({type:'host-question',room:'LIVE',question:indexRef.current}))})
  useEffect(()=>{indexRef.current=index;const ws=socket.current;if(ws?.readyState===1)ws.send(JSON.stringify({type:'host-question',room:'LIVE',question:index}))},[index])
  useEffect(()=>{if(screen!=='quiz'||phase!=='choosing'||!timerEnabled)return;const id=window.setInterval(()=>setTimeLeft(t=>Math.max(0,t-1)),1000);return()=>window.clearInterval(id)},[screen,phase,timerEnabled,index])
@@ -60,7 +61,7 @@ function HostGame(){
  useEffect(()=>{if(screen!=='quiz')return;const onKey=(e:KeyboardEvent)=>{if(phase==='choosing'&&['1','2','3','4'].includes(e.key))pick(Number(e.key)-1);else if(e.key==='Enter'&&phase==='choosing'&&selected!==null)finalAnswer();else if(e.key==='Enter'&&phase==='revealed')next();else if(e.key.toLowerCase()==='f')useLifeline('fifty');else if(e.key.toLowerCase()==='a')useLifeline('audience');else if(e.key.toLowerCase()==='d')useLifeline('expert');else if(e.key.toLowerCase()==='t')setTimerEnabled(v=>!v)};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[screen,phase,selected,index,used])
  function toggleSound(){const next=!muted;setMuted(next);quizSound.setMuted(next);if(!next)quizSound.select()}
  async function testSound(){if(muted){setMuted(false);quizSound.setMuted(false)}const active=await quizSound.test();setSoundReady(active)}
- async function start(){const active=await quizSound.unlock();setSoundReady(active);quizSound.intro();setScreen('quiz');setIndex(0);setPhase(quizQuestions[0].policy?'decision':'choosing');setSelected(null);setScore(0);setBanked(0);setWinnings(0);setUsed([]);setHidden([]);setPanel(null);setTimeLeft(25);setTimedOut(false);setPolicyChoices([]);setCrowdPrompt(false);setCrowdFollowed(0);setCrowdMoments(0);setRisk(1);setBestCategory('');setRapidIndex(0);setRapidCorrect(0);setRapidTime(45)}
+ async function start(){const active=soundReady||await quizSound.unlock(true);setSoundReady(active);quizSound.intro();setScreen('quiz');setIndex(0);setPhase(quizQuestions[0].policy?'decision':'choosing');setSelected(null);setScore(0);setBanked(0);setWinnings(0);setUsed([]);setHidden([]);setPanel(null);setTimeLeft(25);setTimedOut(false);setPolicyChoices([]);setCrowdPrompt(false);setCrowdFollowed(0);setCrowdMoments(0);setRisk(1);setBestCategory('');setRapidIndex(0);setRapidCorrect(0);setRapidTime(45)}
  function choosePolicy(choice:string){setPolicyChoices(v=>[...v,choice]);quizSound.select();setPhase(index===9?'rapid':'choosing');setTimeLeft(25)}
  function answerRapid(answer:boolean){const gotIt=answer===rapidQuestions[rapidIndex][1],nextCorrect=rapidCorrect+(gotIt?1:0);gotIt?quizSound.correct():quizSound.wrong();setRapidCorrect(nextCorrect);if(rapidIndex===rapidQuestions.length-1)finishRapid(nextCorrect);else setRapidIndex(v=>v+1)}
  function finishRapid(finalCorrect:number){if(phase!=='rapid')return;setScore(s=>s+finalCorrect);if(finalCorrect>=3){setWinnings(1000000);setReason('won');quizSound.correct()}else{setWinnings(banked);setReason('wrong');quizSound.wrong()}setScreen('result')}
@@ -106,8 +107,9 @@ function AudienceMode(){
  const [question,setQuestion]=useState(0),[connected,setConnected]=useState(false),[voted,setVoted]=useState<number|null>(null),q=quizQuestions[question]
  const audienceId=useRef(getAudienceId())
  const socket=useLiveSocket({onMessage:m=>{if(m.type==='state'&&typeof m.question==='number'){const next=m.question;setQuestion(prev=>prev===next?prev:next)}},onConnected:setConnected,onOpen:ws=>ws.send(JSON.stringify({type:'join',room:'LIVE',clientId:audienceId.current}))})
+ useEffect(()=>{quizSound.prepare()},[])
  useEffect(()=>{setVoted(null)},[question])
- async function vote(answer:number){if(voted!==null||socket.current?.readyState!==1)return;await quizSound.unlock();quizSound.select();setVoted(answer);socket.current.send(JSON.stringify({type:'vote',room:'LIVE',answer,clientId:audienceId.current}))}
+ function vote(answer:number){if(voted!==null||socket.current?.readyState!==1)return;quizSound.select();setVoted(answer);socket.current.send(JSON.stringify({type:'vote',room:'LIVE',answer,clientId:audienceId.current}))}
  return <main className="audience-mode"><div className={`live-dot ${connected?'online':''}`}/><p>THE MILLION-BYTE QUESTION</p><h1>YOU ARE THE AUDIENCE</h1><div className="audience-q"><small>QUESTION {question+1}</small><h2>{q.question}</h2></div><div className="audience-answers">{q.answers.map((a,i)=><button key={a} disabled={voted!==null} className={voted===i?'voted':''} onClick={()=>vote(i)}><span>{letters[i]}</span>{a}</button>)}</div>{voted!==null?<div className="vote-thanks">VOTE LOCKED. Watch the host screen!</div>:<small>Tap once. Your vote joins the live lifeline.</small>}</main>
 }
 

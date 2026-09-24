@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: keep-the-internet-alive
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /

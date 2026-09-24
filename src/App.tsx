@@ -22,7 +22,7 @@ function useLiveSocket(handlers:{onMessage:(message:LiveMessage)=>void;onConnect
  const callbacks=useRef(handlers);callbacks.current=handlers
  const socket=useRef<WebSocket|null>(null)
  useEffect(()=>{let stopped=false,timer=0
-  const connect=()=>{const ws=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.hostname}:8787`);socket.current=ws
+  const connect=()=>{const websocketHost=location.port==='5173'?`${location.hostname}:8787`:location.host;const ws=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${websocketHost}`);socket.current=ws
    ws.onopen=()=>{callbacks.current.onConnected(true);callbacks.current.onOpen?.(ws)}
    ws.onclose=()=>{callbacks.current.onConnected(false);if(!stopped)timer=window.setTimeout(connect,1500)}
    ws.onerror=()=>{try{ws.close()}catch{}}

@@ -2,8 +2,13 @@ import { WebSocketServer } from 'ws'
 import { createServer } from 'node:http'
 import { networkInterfaces } from 'node:os'
 import { spawn } from 'node:child_process'
+import { readFile, stat } from 'node:fs/promises'
+import { extname, resolve, sep } from 'node:path'
 
-const PORT = 8787
+const production = process.argv.includes('--production')
+const PORT = Number(process.env.PORT) || 8787
+const DIST = resolve(process.cwd(), 'dist')
+const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json; charset=utf-8' }
 
 // Ordered so audience phones are offered the local Wi-Fi LAN first (they will not be
 // on the host's tailnet), with Tailscale kept as a fallback for the host's own devices.
@@ -36,15 +41,30 @@ const broadcast = code => {
 
 // One port serves both the WebSocket and a tiny HTTP endpoint the host page uses
 // to learn which address a phone should scan.
-const server = createServer((request, response) => {
+const server = createServer(async (request, response) => {
   response.setHeader('Access-Control-Allow-Origin', '*')
   if ((request.url ?? '').split('?')[0] === '/network') {
     response.setHeader('Content-Type', 'application/json')
     response.end(JSON.stringify({ addresses: localAddresses(), port: PORT }))
     return
   }
-  response.statusCode = 404
-  response.end('not found')
+  if (!production) {
+    response.statusCode = 404
+    response.end('not found')
+    return
+  }
+  try {
+    const pathname = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname)
+    let file = resolve(DIST, `.${pathname}`)
+    if (!file.startsWith(`${DIST}${sep}`) && file !== DIST) throw new Error('invalid path')
+    if ((await stat(file).catch(() => null))?.isDirectory()) file = resolve(file, 'index.html')
+    if (!(await stat(file).catch(() => null))?.isFile()) file = resolve(DIST, 'index.html')
+    response.setHeader('Content-Type', mime[extname(file)] ?? 'application/octet-stream')
+    response.end(await readFile(file))
+  } catch {
+    response.statusCode = 404
+    response.end('not found')
+  }
 })
 
 const wss = new WebSocketServer({ server })
@@ -72,10 +92,10 @@ wss.on('connection', socket => {
   })
 })
 
-server.listen(PORT, '0.0.0.0', () => console.log('Audience server: ws://0.0.0.0:8787'))
-const vite = spawn('npm', ['run', 'dev:web', '--', '--host', '0.0.0.0'], { stdio: 'inherit', shell: true })
+server.listen(PORT, '0.0.0.0', () => console.log(`Game and audience server: http://0.0.0.0:${PORT}`))
+const vite = production ? null : spawn('npm', ['run', 'dev:web', '--', '--host', '0.0.0.0'], { stdio: 'inherit', shell: true })
 process.on('SIGINT', () => {
-  vite.kill('SIGINT')
+  vite?.kill('SIGINT')
   wss.close()
   server.close()
   process.exit(0)

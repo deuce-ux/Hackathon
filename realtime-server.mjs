@@ -32,11 +32,12 @@ function localAddresses() {
 }
 
 const rooms = new Map()
-const room = code => rooms.get(code) ?? { question: 0, votes: [0, 0, 0, 0], clients: new Set() }
+const room = code => rooms.get(code) ?? { question: 0, votes: [0, 0, 0, 0], clients: new Map() }
 const broadcast = code => {
   const state = room(code)
-  const message = JSON.stringify({ type: 'state', question: state.question, votes: state.votes, connected: state.clients.size })
-  for (const client of state.clients) if (client.readyState === 1) client.send(message)
+  const audienceIds = new Set([...state.clients.values()].filter(client => client.role === 'audience').map(client => client.id))
+  const message = JSON.stringify({ type: 'state', question: state.question, votes: state.votes, connected: audienceIds.size })
+  for (const client of state.clients.keys()) if (client.readyState === 1) client.send(message)
 }
 
 // One port serves both the WebSocket and a tiny HTTP endpoint the host page uses
@@ -76,7 +77,9 @@ wss.on('connection', socket => {
       code = String(msg.room || 'LIVE').toUpperCase()
       const state = room(code)
       rooms.set(code, state)
-      state.clients.add(socket)
+      const role = msg.type === 'host-question' ? 'host' : 'audience'
+      const id = role === 'host' ? `host-${Date.now()}` : String(msg.clientId || `guest-${Date.now()}-${Math.random()}`)
+      state.clients.set(socket, { role, id })
       if (msg.type === 'host-question' && msg.question !== state.question) {
         state.question = msg.question
         state.votes = [0, 0, 0, 0]

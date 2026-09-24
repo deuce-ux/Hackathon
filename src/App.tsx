@@ -51,7 +51,7 @@ function HostGame(){
  const voteTotal=liveVotes.reduce((a,b)=>a+b,0),crowdChoice=liveVotes.indexOf(Math.max(...liveVotes))
  const poll=useMemo(()=>{const total=liveVotes.reduce((a,b)=>a+b,0);return total?liveVotes.map(v=>Math.round(v/total*100)):q?[8,12,16,10].map((v,i)=>i===q.correct?54:v):[]},[liveVotes,q])
  useEffect(()=>{void QRCode.toDataURL(audienceUrl,{width:360,margin:2,color:{dark:'#050817',light:'#ffffff'}}).then(setQrSrc)},[audienceUrl])
- const socket=useLiveSocket({onMessage:m=>{if(m.type==='state'){setLiveVotes(m.votes??[0,0,0,0]);setConnected(Math.max(0,(m.connected??0)-1))}},onConnected:()=>{},onOpen:ws=>ws.send(JSON.stringify({type:'host-question',room:'LIVE',question:indexRef.current}))})
+ const socket=useLiveSocket({onMessage:m=>{if(m.type==='state'){setLiveVotes(m.votes??[0,0,0,0]);setConnected(Math.max(0,m.connected??0))}},onConnected:()=>{},onOpen:ws=>ws.send(JSON.stringify({type:'host-question',room:'LIVE',question:indexRef.current}))})
  useEffect(()=>{indexRef.current=index;const ws=socket.current;if(ws?.readyState===1)ws.send(JSON.stringify({type:'host-question',room:'LIVE',question:index}))},[index])
  useEffect(()=>{if(screen!=='quiz'||phase!=='choosing'||!timerEnabled)return;const id=window.setInterval(()=>setTimeLeft(t=>Math.max(0,t-1)),1000);return()=>window.clearInterval(id)},[screen,phase,timerEnabled,index])
  useEffect(()=>{if(screen!=='quiz'||phase!=='rapid')return;const id=window.setInterval(()=>setRapidTime(t=>Math.max(0,t-1)),1000);return()=>window.clearInterval(id)},[screen,phase])
@@ -104,8 +104,14 @@ function Result({score,winnings,banked,reason,onRestart,muted,toggleSound,crowdF
 
 function AudienceMode(){
  const [question,setQuestion]=useState(0),[connected,setConnected]=useState(false),[voted,setVoted]=useState<number|null>(null),q=quizQuestions[question]
- const socket=useLiveSocket({onMessage:m=>{if(m.type==='state'&&typeof m.question==='number'){const next=m.question;setQuestion(prev=>prev===next?prev:next)}},onConnected:setConnected,onOpen:ws=>ws.send(JSON.stringify({type:'join',room:'LIVE'}))})
+ const audienceId=useRef(getAudienceId())
+ const socket=useLiveSocket({onMessage:m=>{if(m.type==='state'&&typeof m.question==='number'){const next=m.question;setQuestion(prev=>prev===next?prev:next)}},onConnected:setConnected,onOpen:ws=>ws.send(JSON.stringify({type:'join',room:'LIVE',clientId:audienceId.current}))})
  useEffect(()=>{setVoted(null)},[question])
- function vote(answer:number){if(voted!==null||socket.current?.readyState!==1)return;quizSound.select();setVoted(answer);socket.current.send(JSON.stringify({type:'vote',room:'LIVE',answer}))}
+ function vote(answer:number){if(voted!==null||socket.current?.readyState!==1)return;quizSound.select();setVoted(answer);socket.current.send(JSON.stringify({type:'vote',room:'LIVE',answer,clientId:audienceId.current}))}
  return <main className="audience-mode"><div className={`live-dot ${connected?'online':''}`}/><p>THE MILLION-BYTE QUESTION</p><h1>YOU ARE THE AUDIENCE</h1><div className="audience-q"><small>QUESTION {question+1}</small><h2>{q.question}</h2></div><div className="audience-answers">{q.answers.map((a,i)=><button key={a} disabled={voted!==null} className={voted===i?'voted':''} onClick={()=>vote(i)}><span>{letters[i]}</span>{a}</button>)}</div>{voted!==null?<div className="vote-thanks">VOTE LOCKED. Watch the host screen!</div>:<small>Tap once. Your vote joins the live lifeline.</small>}</main>
+}
+
+function getAudienceId(){
+ const key='million-byte-audience-id'
+ try{const existing=localStorage.getItem(key);if(existing)return existing;const id=crypto.randomUUID();localStorage.setItem(key,id);return id}catch{return `audience-${Date.now()}-${Math.random().toString(36).slice(2)}`}
 }

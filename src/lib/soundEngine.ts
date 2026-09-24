@@ -12,12 +12,12 @@ class QuizSoundEngine {
       if (!Ctx) return null
       this.ctx = new Ctx(); this.master = this.ctx.createGain(); this.master.gain.value = this.muted ? 0 : 0.7; this.master.connect(this.ctx.destination)
     }
-    if (this.ctx.state === 'suspended') void this.ctx.resume()
     return this.ctx
   }
   async unlock(){const ctx=this.ready();if(!ctx)return false;try{await ctx.resume();const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=220;g.gain.setValueAtTime(.001,ctx.currentTime);o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+.01);return ctx.state==='running'}catch{return false}}
   private note(freq: number, at: number, duration: number, type: OscillatorType = 'sine', volume = .35) {
     const ctx=this.ready(); if(!ctx||!this.master)return
+    if(ctx.state!=='running'){void ctx.resume().then(()=>this.note(freq,at,duration,type,volume));return}
     const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,ctx.currentTime+at);g.gain.setValueAtTime(.001,ctx.currentTime+at);g.gain.exponentialRampToValueAtTime(volume,ctx.currentTime+at+.02);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+at+duration);o.connect(g);g.connect(this.master);o.start(ctx.currentTime+at);o.stop(ctx.currentTime+at+duration+.03)
   }
   intro(){[196,247,294,392,494].forEach((n,i)=>this.note(n,i*.11,.4,'triangle',.3));this.note(98,0,.9,'sawtooth',.16)}

@@ -1,0 +1,28 @@
+import { surveyData } from './surveyData'
+
+export type QuizQuestion = {
+  question: string
+  answers: [string, string, string, string]
+  correct: number
+  explanation: string
+  hint: string
+  character: 'byte' | 'sparky' | 'drippy'
+  surveyValue?: number
+  source?: string
+  policy?: { headline: string; description: string; choices: [string, string] }
+}
+
+const pct = (value: number) => `${value}%`
+
+export const quizQuestions: QuizQuestion[] = [
+  { question: "What share believed data centres use a significant proportion of Ireland's electricity?", answers: ['24%', pct(surveyData.electricityUseBelief.value), '74%', '94%'], correct: 1, explanation: surveyData.electricityUseBelief.text, hint: 'It was a little over half of those who answered.', character: 'sparky', surveyValue: surveyData.electricityUseBelief.value, source: surveyData.electricityUseBelief.source },
+  { policy:{headline:'THE INTERNET IS SHOUTING',description:'A viral post claims one data centre drinks an ocean before lunch.',choices:['Publish clear evidence','Ignore it and hope']}, question: 'What share selected social media as a source that shaped their view?', answers: ['12%', '27%', pct(surveyData.socialMediaSource.value), '72%'], correct: 2, explanation: surveyData.socialMediaSource.text, hint: 'More than two in five selected it; respondents could name multiple sources.', character: 'byte', surveyValue: surveyData.socialMediaSource.value, source: surveyData.socialMediaSource.source },
+  { question: 'What share backed a legal requirement for 100% renewable energy?', answers: ['19%', pct(surveyData.renewableRequirement.value), '69%', '84%'], correct: 1, explanation: surveyData.renewableRequirement.text, hint: 'Combined agreement was below half, but well above one third.', character: 'sparky', surveyValue: surveyData.renewableRequirement.value, source: surveyData.renewableRequirement.source },
+  { policy:{headline:'WHAT DOES THE TOWN GET?',description:'The servers arrive with jobs, noise, and a suspiciously glossy brochure.',choices:['Guarantee community benefits','Trust the brochure']}, question: 'What share wanted direct benefits for communities near data centres?', answers: ['22%', pct(surveyData.localBenefits.value), '62%', '82%'], correct: 1, explanation: surveyData.localBenefits.text, hint: 'Agreement came to just over two in five valid responses.', character: 'byte', surveyValue: surveyData.localBenefits.value, source: surveyData.localBenefits.source },
+  { question: 'What share said independent public environmental monitoring would greatly increase acceptance?', answers: ['15%', '30%', pct(surveyData.independentMonitoring.value), '75%'], correct: 2, explanation: surveyData.independentMonitoring.text, hint: 'Large impact plus fully accepting came to the mid-forties.', character: 'drippy', surveyValue: surveyData.independentMonitoring.value, source: surveyData.independentMonitoring.source },
+  { policy:{headline:'THE 147-PAGE PDF RETURNS',description:'The public wants answers. Communications has supplied twelve appendices and no summary.',choices:['Explain it in plain English','Upload it at 4:59pm']}, question: 'What share said the public needs much better information?', answers: ['19%', pct(surveyData.publicInformation.value), '59%', '79%'], correct: 1, explanation: surveyData.publicInformation.text, hint: 'Agreement was a shade under 40% of valid responses.', character: 'byte', surveyValue: surveyData.publicInformation.value, source: surveyData.publicInformation.source },
+  { question: 'Which statement is an opinion rather than a verified infrastructure fact?', answers: ['Servers consume electricity', 'Cooling can require water', 'Data centres are worth the cost', 'Networks connect computing systems'], correct: 2, explanation: 'Whether benefits outweigh costs is a judgement. Evidence can inform it, but cannot make the judgement for everyone.', hint: 'Three answers describe physical systems. One makes a value judgement.', character: 'byte' },
+  { policy:{headline:'THE LOCALS WANT A VOTE',description:'A planning meeting is full. Even the folding chairs appear strongly opinionated.',choices:['Require community consent','Keep consultation optional']}, question: 'What share backed a legal community-consent requirement?', answers: ['23%', pct(surveyData.communityConsent.value), '63%', '83%'], correct: 1, explanation: surveyData.communityConsent.text, hint: 'Combined agreement was a little over two in five.', character: 'drippy', surveyValue: surveyData.communityConsent.value, source: surveyData.communityConsent.source },
+  { question: 'What share said well-managed sustainable data centres can deliver benefits that outweigh costs?', answers: ['18%', pct(surveyData.managedBenefits.value), '58%', '78%'], correct: 1, explanation: surveyData.managedBenefits.text, hint: 'Combined agreement was just under 40% of valid responses.', character: 'byte', surveyValue: surveyData.managedBenefits.value, source: surveyData.managedBenefits.source },
+  { policy:{headline:'THE FINAL PROPOSAL',description:'One last expansion. Everyone is watching, including the person holding the extension lead.',choices:['Approve with strict conditions','Reject further expansion']}, question: 'Which conclusion can this survey responsibly support?', answers: ['What every Irish person believes', 'Exact national energy demand', 'Patterns among its respondents', 'The objectively correct policy'], correct: 2, explanation: 'The survey reveals patterns among the people who answered it. It does not turn opinion into fact or automatically represent every person in Ireland.', hint: 'Good evidence has boundaries. Pick the claim that respects them.', character: 'sparky' },
+]

@@ -5,17 +5,17 @@ class QuizSoundEngine {
   private master: GainNode | null = null
   private muted = false
 
-  setMuted(value: boolean) { this.muted = value; if (this.master) this.master.gain.value = value ? 0 : 0.34 }
+  setMuted(value: boolean) { this.muted = value; if (this.master) this.master.gain.value = value ? 0 : 0.7 }
   private ready() {
     if (!this.ctx) {
       const Ctx = window.AudioContext || (window as AudioWindow).webkitAudioContext
       if (!Ctx) return null
-      this.ctx = new Ctx(); this.master = this.ctx.createGain(); this.master.gain.value = this.muted ? 0 : 0.34; this.master.connect(this.ctx.destination)
+      this.ctx = new Ctx(); this.master = this.ctx.createGain(); this.master.gain.value = this.muted ? 0 : 0.7; this.master.connect(this.ctx.destination)
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume()
     return this.ctx
   }
-  async unlock(){const ctx=this.ready();if(!ctx)return false;try{await ctx.resume();const buffer=ctx.createBuffer(1,1,22050),source=ctx.createBufferSource();source.buffer=buffer;source.connect(ctx.destination);source.start(0);return ctx.state==='running'}catch{return false}}
+  async unlock(){const ctx=this.ready();if(!ctx)return false;try{await ctx.resume();const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=220;g.gain.setValueAtTime(.001,ctx.currentTime);o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+.01);return ctx.state==='running'}catch{return false}}
   private note(freq: number, at: number, duration: number, type: OscillatorType = 'sine', volume = .35) {
     const ctx=this.ready(); if(!ctx||!this.master)return
     const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,ctx.currentTime+at);g.gain.setValueAtTime(.001,ctx.currentTime+at);g.gain.exponentialRampToValueAtTime(volume,ctx.currentTime+at+.02);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+at+duration);o.connect(g);g.connect(this.master);o.start(ctx.currentTime+at);o.stop(ctx.currentTime+at+duration+.03)

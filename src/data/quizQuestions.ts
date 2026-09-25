@@ -9,6 +9,7 @@ export type QuizQuestion = {
   character: 'byte' | 'sparky' | 'drippy'
   surveyValue?: number
   source?: string
+  measuredData?: { text: string; source: string }
   policy?: { headline: string; description: string; choices: [string, string] }
 }
 
@@ -21,6 +22,10 @@ export const quizQuestions: QuizQuestion[] = [
     correct: 1, explanation: surveyData.electricityUseBelief.text,
     hint: 'Ireland is not giving you a simple yes or no. Address the risk respondents are most conscious of.',
     character: 'sparky', surveyValue: surveyData.electricityUseBelief.value, source: surveyData.electricityUseBelief.source,
+    measuredData: {
+      text: 'The supplied electricity dataset records 7,663 GWh of data-centre consumption out of 32,986 GWh total consumption — approximately 23.2%.',
+      source: 'Supplied electricity-consumption dataset · 7,663 ÷ 32,986 GWh',
+    },
   },
   {
     question: 'A false viral post about the project is spreading faster than your technical report. What do you do?',
